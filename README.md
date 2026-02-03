@@ -5,6 +5,9 @@ Quark lib:
 https://creepersaur.github.io/quark/
 https://github.com/creepersaur/quark
 
+This project also profited greatly from Argon (rojo but better in every single way):
+https://argon.wiki/
+
 ## How to use
 - Step 1. Install the plugin.
 - Step 2. Select your desired instances in roblox studio's explorer. <br>
