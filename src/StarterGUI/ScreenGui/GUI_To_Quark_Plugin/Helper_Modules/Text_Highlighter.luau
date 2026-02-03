@@ -13,91 +13,127 @@ local COLOR_GOLD  = Color3.fromRGB(253, 184, 23)
 local COLOR_PINK  = Color3.fromRGB(255, 1,   81)
 local COLOR_GREEN = Color3.fromRGB(124, 255, 124)
 --
+-- LOCAL TYPES
+--
+type Pattern_Occurrence = {
+    start_pos: number,
+    end_pos:   number,
+    color:     Color3
+}
+--
 -- LOCAL FUNCTIONS
 --
 local function color3_to_hex(color: Color3): string
-	local r = math.floor(color.R * 255)
-	local g = math.floor(color.G * 255)
-	local b = math.floor(color.B * 255)
-	return string.format("#%02X%02X%02X", r, g, b)
+    local r = math.floor(color.R * 255)
+    local g = math.floor(color.G * 255)
+    local b = math.floor(color.B * 255)
+    return string.format("#%02X%02X%02X", r, g, b)
 end
 
-local function higlight_text_region(text: string, start_pos: number, end_pos: number, color: Color3): string
-	local before = string.sub(text,      (1),              start_pos - 1)
-	local target = string.sub(text,      start_pos,        end_pos)
-	local after  = string.sub(text,      end_pos + 1)
+local function find_pattern_occurrences(text: string,
+										regex_pattern: string,
+										color: Color3)
+										
+									   : {Pattern_Occurrence}
+									   
+    local occurrences = {}
+    local offset = 1
+    local max_iterations = 1000
+    local iteration = 1
+    
+    while (iteration < max_iterations) do
+        local start_pos, end_pos = string.find(text, regex_pattern, offset, false)
+        
+        if (start_pos == nil) then
+            break
+        end
 
-	local hex_color = color3_to_hex(color)
+        table.insert(occurrences, {
+            start_pos = start_pos,
+            end_pos   = end_pos,
+            color     = color
+        } :: Pattern_Occurrence)
 
-	return before .. `<font color="{hex_color}">{target}</font>` .. after
+        offset = end_pos + 1
+        iteration += 1
+    end
+
+    return occurrences
 end
 
-local function highlight_pattern(text: string, regex_pattern: string, color: Color3): string
-	local result = text
-	local offset = 0
-	local max_iterations = 1000
-	local iteration = 1
-	
-	while (iteration < max_iterations) do
-		local start_pos, end_pos = string.find(result, regex_pattern, offset, false)
-		
-		if (start_pos == nil) then
-			break
-		end
+local function find_keyword_occurrences(text:       string,
+										keywords: {[string]: boolean},
+										color:      Color3)
+										
+									   : {Pattern_Occurrence}
+    local occurrences = {}
 
-		result = higlight_text_region(result, start_pos, end_pos :: number, color)
+    -- Sort keywords by length (longest first) to avoid partial matches
+    local sorted_keywords = {} :: {string}
+    for keyword in keywords do
+        table.insert(sorted_keywords, keyword)
+    end
+    
+    table.sort(sorted_keywords, function(a: string, b: string)
+        local a_len = a:len()
+        local b_len = b:len()
+        
+        return (a_len > b_len)
+    end)
 
-		-- Adjust offset for next search
-		local len = string.len(`<font color="{color3_to_hex(color)}"></font>`)
-		local highlighted_length = len + ((end_pos or text:len()) - start_pos + 1)
-		offset = start_pos + highlighted_length
-		
-		iteration += 1
-	end
+    for _, keyword in ipairs(sorted_keywords) do
+        -- Pattern to match whole words only
+        local pattern = "%f[%a_]" .. keyword .. "%f[^%a_]"
+        local keyword_occurrences = find_pattern_occurrences(text, pattern, color)
+        
+        for _, occurrence in ipairs(keyword_occurrences) do
+            table.insert(occurrences, occurrence)
+        end
+    end
 
-	return result
+    return occurrences
 end
 
-local function highlight_keywords(text: string, keywords: {[string]: boolean}, color: Color3): string
-	local result = text
+local function find_number_occurrences(text: string): {Pattern_Occurrence}
+    local occurrences = {}
+    local patterns = {
+        {pattern = "%-?%d+%.%d+[eE][%+%-]?%d+",  color = COLOR_GOLD},  -- Scientific notation
+        {pattern = "%-?%d+[eE][%+%-]?%d+",       color = COLOR_GOLD},  -- Scientific notation without decimal
+        {pattern = "%-?%d+%.%d+",                color = COLOR_GOLD},  -- Decimal numbers
+        {pattern = "%-?%d+",                     color = COLOR_GOLD},  -- Integers
+    }
 
-	-- Sort keywords by length (longest first) to avoid partial matches
-	local sorted_keywords = {} :: {string}
-	for keyword in keywords do
-		table.insert(sorted_keywords, keyword)
-	end
-	
-	table.sort(sorted_keywords, function(a: string, b: string)
-		local a_len = a:len()
-		local b_len = b:len()
-		
-		return (a_len > b_len)
-	end)
+    for _, pattern_info in ipairs(patterns) do
+        local pattern_occurrences = find_pattern_occurrences(text, pattern_info.pattern, pattern_info.color)
+        
+        for _, occurrence in ipairs(pattern_occurrences) do
+            table.insert(occurrences, occurrence)
+        end
+    end
 
-	for _, keyword in ipairs(sorted_keywords) do
-		-- Pattern to match whole words only
-		local pattern = "%f[%a_]" .. keyword .. "%f[^%a_]"
-		result = highlight_pattern(result, pattern, color)
-	end
-
-	return result
+    return occurrences
 end
 
-local function highlight_numbers(text: string): string
-	-- Pattern for numbers (including decimals and scientific notation)
-	local patterns = {
-		"%-?%d+%.%d+[eE][%+%-]?%d+",  -- Scientific notation
-		"%-?%d+[eE][%+%-]?%d+",       -- Scientific notation without decimal
-		"%-?%d+%.%d+",                -- Decimal numbers
-		"%-?%d+",                     -- Integers
-	}
+local function process_occurrences_from_end(text: string, all_occurrences: {Pattern_Occurrence}): string
+    -- Sort occurrences by start position (ascending)
+    table.sort(all_occurrences, function(a: Pattern_Occurrence, b: Pattern_Occurrence)
+        return a.start_pos < b.start_pos
+    end)
 
-	local result = text
-	for _, pattern in ipairs(patterns) do
-		result = highlight_pattern(result, pattern, COLOR_GOLD)
-	end
+    -- Process from end to start
+    for i = #all_occurrences, 1, -1 do
+        local occurrence = all_occurrences[i]
+        
+        local before = string.sub(text, 1, occurrence.start_pos - 1)
+        local target = string.sub(text, occurrence.start_pos, occurrence.end_pos)
+        local after  = string.sub(text, occurrence.end_pos + 1)
+        
+        local hex_color = color3_to_hex(occurrence.color)
+        
+        text = before .. `<font color="{hex_color}">{target}</font>` .. after
+    end
 
-	return result
+    return text
 end
 --
 -- MODULE DEFINITION 
@@ -105,19 +141,57 @@ end
 local Text_Highlighter = {}
 
 function Text_Highlighter.Highlight(text: string): string
-	if text == "" then
-		return ""
-	end
+    if text == "" then
+        return ""
+    end
 
-	local highlighted = text
+    -- Collect all pattern occurrences first
+    local all_occurrences = {}
+    
+    -- Find number occurrences
+    local number_occurrences = find_number_occurrences(text)
+    for _, occurrence in ipairs(number_occurrences) do
+        table.insert(all_occurrences, occurrence)
+    end
+    
+    -- Find keyword occurrences
+    local pink_occurrences = find_keyword_occurrences(text, Pink_Keywords, COLOR_PINK)
+    local blue_occurrences = find_keyword_occurrences(text, Blue_Keywords, COLOR_BLUE)
+    local gold_occurrences = find_keyword_occurrences(text, Gold_Keywords, COLOR_GOLD)
+    
+    for _, occurrence in ipairs(pink_occurrences) do
+        table.insert(all_occurrences, occurrence)
+    end
+    
+    for _, occurrence in ipairs(blue_occurrences) do
+        table.insert(all_occurrences, occurrence)
+    end
+    
+    for _, occurrence in ipairs(gold_occurrences) do
+        table.insert(all_occurrences, occurrence)
+    end
 
-	highlighted = highlight_numbers(highlighted)
+    -- Remove any duplicate/overlapping occurrences (keep only one occurrence per position)
+    -- We'll sort by start position and remove overlaps
+    table.sort(all_occurrences, function(a: Pattern_Occurrence, b: Pattern_Occurrence)
+        if a.start_pos == b.start_pos then
+            return a.end_pos > b.end_pos  -- Prefer longer matches for same start position
+        end
+        return a.start_pos < b.start_pos
+    end)
+    
+    local filtered_occurrences = {}
+    local last_end = 0
+    
+    for _, occurrence in all_occurrences do
+        if occurrence.start_pos > last_end then
+            table.insert(filtered_occurrences, occurrence)
+            last_end = occurrence.end_pos
+        end
+    end
 
-	highlighted = highlight_keywords(highlighted, Pink_Keywords, COLOR_PINK)
-	highlighted = highlight_keywords(highlighted, Blue_Keywords, COLOR_BLUE)
-	highlighted = highlight_keywords(highlighted, Gold_Keywords, COLOR_GOLD)
-
-	return highlighted
+    -- Process from end to start
+    return process_occurrences_from_end(text, filtered_occurrences)
 end
 --
 -- RETURN VALUE
