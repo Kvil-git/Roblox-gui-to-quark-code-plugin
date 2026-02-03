@@ -3,9 +3,9 @@
 -- CONSTANTS
 --
 local GOLD_KEYWORDS = {
-	["true"]  = true,
-	["false"] = true,
-	["nil"]   = true,
+	"true"  ,
+	"false" ,
+	"nil"   ,
 }
 --
 -- RETURN VALUE
