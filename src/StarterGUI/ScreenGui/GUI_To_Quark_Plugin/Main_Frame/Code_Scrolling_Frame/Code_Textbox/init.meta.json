@@ -1,0 +1,27 @@
+{
+  "className": "TextBox",
+  "properties": {
+    "BackgroundColor3": [0.1961, 0.1961, 0.1961],
+    "BorderColor3": [0, 0, 0],
+    "BorderSizePixel": 0,
+    "ClearTextOnFocus": false,
+    "FontFace": {
+      "family": "rbxasset://fonts/families/SourceSansPro.json",
+      "weight": "Regular",
+      "style": "Normal",
+      "cachedFaceId": null
+    },
+    "MultiLine": true,
+    "PlaceholderText": "Placeholder text",
+    "Position": [[-0.0011, 0.0], [0.0, 0.0]],
+    "RichText": true,
+    "Size": [[1.0, 0.0], [1.0, 0.0]],
+    "Text": "",
+    "TextColor3": [1, 1, 1],
+    "TextScaled": true,
+    "TextSize": 50,
+    "TextWrapped": true,
+    "TextXAlignment": "Left",
+    "TextYAlignment": "Top"
+  }
+}
