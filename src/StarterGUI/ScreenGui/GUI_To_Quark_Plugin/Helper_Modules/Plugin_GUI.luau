@@ -15,13 +15,9 @@ local Text_Highlighter  = require("./Text_Highlighter")
 local Main_Frame = script.Parent.Parent.Main_Frame
 local Text_Box   = Main_Frame.Code_Scrolling_Frame.Code_Textbox
 --
--- LOCAL VARIABLES
---
-local is_syntax_highlighted = (false)
---
 -- LOCAL FUNCTIONS
 --
-local function Convert_GUIs_To_Quark()
+local function Convert_GUIs_To_Quark(highlight_syntax: boolean)
 	local selected_instances = Selection:Get()
 	local text = ""
 	for key, instance in selected_instances do
@@ -33,12 +29,16 @@ local function Convert_GUIs_To_Quark()
 		text = `{text}\n{instance_quark_code}`
 	end
 
-	if (is_syntax_highlighted) then
+	if (highlight_syntax) then
 		-- Apply syntax highlighting to the generated code
 		text = Text_Highlighter.Highlight(text)
 	end
 	
 	Text_Box.Text = text
+end
+
+local function Set_Highlighting(highlight_syntax: boolean)
+	Convert_GUIs_To_Quark(highlight_syntax)
 end
 --
 -- MODULE DEFINITION 	
@@ -51,19 +51,16 @@ function Plugin_GUI.Initialize(dock_widget_GUI: DockWidgetPluginGui)
 
 
 	local convert_button = Main_Frame.Convertion_Button
-	convert_button.MouseButton1Click:Connect(Convert_GUIs_To_Quark)
+	convert_button.MouseButton1Click:Connect(function()
+		Convert_GUIs_To_Quark(true)
+	end)
 	
+	Text_Box.Focused:Connect(function()
+		Set_Highlighting(false)
+	end)
 	
-	local syntax_higlight_button = Main_Frame.Syntax_Highlight_Button
-	syntax_higlight_button.MouseButton1Click:Connect(function()
-		is_syntax_highlighted = (not is_syntax_highlighted)
-		if (is_syntax_highlighted == true) then
-			syntax_higlight_button.BackgroundColor3 = Color3.fromRGB(68, 255, 0)
-		else
-			syntax_higlight_button.BackgroundColor3 = Color3.fromRGB(62, 62, 62)
-		end
-		
-		Convert_GUIs_To_Quark()
+	Text_Box.FocusLost:Connect(function()
+		Set_Highlighting(true)
 	end)
 end
 --
