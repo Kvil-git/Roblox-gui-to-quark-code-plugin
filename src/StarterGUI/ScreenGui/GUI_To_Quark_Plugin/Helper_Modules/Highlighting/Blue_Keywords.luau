@@ -1,0 +1,53 @@
+--!strict
+--
+-- CONSTANTS
+--
+local BLUE_KEYWORDS = {
+	["assert"]         = true,                               
+	["collectgarbage"] = true,
+	["error"]          = true,
+	["getfenv"]        = true,
+	["getmetatable"]   = true,
+	["ipairs"]         = true,
+	["loadstring"]     = true,
+	["next"]           = true,
+	["pairs"]          = true,
+	["pcall"]          = true,
+	["print"]          = true,
+	["rawequal"]       = true,
+	["rawget"]         = true,
+	["rawset"]         = true,
+	["select"]         = true,
+	["setfenv"]        = true,
+	["setmetatable"]   = true,
+	["tonumber"]       = true,
+	["tostring"]       = true,
+	["typeof"]         = true,
+	["unpack"]         = true,
+	["xpcall"]         = true,
+	["coroutine"]      = true,
+	["debug"]          = true,
+	["game"]           = true,
+	["io"]             = true,
+	["math"]           = true,
+	["os"]             = true,
+	["string"]         = true,
+	["table"]          = true,
+	["utf8"]           = true,
+	["workspace"]      = true,
+	["script"]         = true,
+	["task"]           = true,
+	["warn"]           = true,
+	["Instance"]       = true,
+	["Vector2"]        = true,
+	["Vector3"]        = true,
+	["CFrame"]         = true,
+	["Color3"]         = true,
+	["Enum"]           = true,
+	["UDim"]           = true,
+	["UDim2"]          = true,
+}
+--
+-- RETURN VALUE
+--
+return BLUE_KEYWORDS
