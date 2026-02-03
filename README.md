@@ -2,10 +2,13 @@
 Quark is a very neat react-like library, but I hate to convert my old instances to code manually, so I wrote a plugin for it.
 
 Quark lib:
+<br>
 https://creepersaur.github.io/quark/
+<br>
 https://github.com/creepersaur/quark
 
 This project also profited greatly from Argon (rojo but better in every single way):
+<br>
 https://argon.wiki/
 
 ## How to use
