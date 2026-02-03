@@ -100,85 +100,99 @@ local function Prepare_GUI_Class_Properties_Table(gui_class_name: string)
 	end
 end
 
-local function formatValueForQuark(value: any, propertyName: string): string
-	local valueType = typeof(value)
-
-	if valueType == "string" then
-		-- Check if the string contains only numbers (possibly with decimal point)
-		if value:match("^[%d%.]+$") then
-			return value
-		else
-			-- Wrap non-numeric strings in quotes
-			return `"{value}"`
-		end
-
-	elseif valueType == "number" then
-		return tostring(value)
-
-	elseif valueType == "boolean" then
-		return value and "true" or "false"
-
-	elseif valueType == "UDim" then
-		return `UDim.new({value.Scale}, {value.Offset})`
-
-	elseif valueType == "UDim2" then
-		return `UDim2.new({value.X.Scale}, {value.X.Offset}, {value.Y.Scale}, {value.Y.Offset})`
-
-	elseif valueType == "Vector2" then
-		return `Vector2.new({value.X}, {value.Y})`
-
-	elseif valueType == "Vector3" then
-		-- Check if property name contains "Color" to determine if it should be Color3
-		if propertyName:lower():find("color") then
-			return `Color3.new({value.X}, {value.Y}, {value.Z})`
-		else
-			return `Vector3.new({value.X}, {value.Y}, {value.Z})`
-		end
-
-	elseif valueType == "Color3" then
-		return `Color3.new({value.R}, {value.G}, {value.B})`
-
-	elseif valueType == "BrickColor" then
-		return `BrickColor.new("{value.Name}")`
-
-	elseif valueType == "EnumItem" then
-		-- Handle Enum items (like Font enums, etc.)
-		return `Enum.{tostring(value)}`
-
-	elseif valueType == "table" then
-		-- Handle tables (like for certain properties)
-		if #value == 2 and typeof(value[1]) == "number" and typeof(value[2]) == "number" then
-			-- Two numbers in a table - likely UDim
-			return `UDim.new({value[1]}, {value[2]})`
-		elseif #value == 4 and typeof(value[1]) == "number" and typeof(value[2]) == "number" 
-			and typeof(value[3]) == "number" and typeof(value[4]) == "number" then
-			-- Four numbers in a table - likely UDim2
-			return `UDim2.new({value[1]}, {value[2]}, {value[3]}, {value[4]})`
-		elseif #value == 3 and typeof(value[1]) == "number" and typeof(value[2]) == "number" 
-			and typeof(value[3]) == "number" then
-			-- Three numbers - check property name
-			if propertyName:lower():find("color") then
-				return `Color3.new({value[1]}, {value[2]}, {value[3]})`
+local function Format_Value_For_Quark_Code(value: any, propertyName: string): string
+	local value_type = typeof(value)
+	local is_color_property = propertyName:lower():find("color") ~= nil
+	--
+	-- Switch-case analog in lua is just a table of functions.
+	--
+	local type_handlers = {
+		string = function(val: string)
+			-- Check if string contains only numbers (with optional decimal)
+			if val:match("^[%d%.]+$") then
+				return val
 			else
-				return `Vector3.new({value[1]}, {value[2]}, {value[3]})`
+				return `"{val}"`
 			end
-		else
-			-- Generic table handling
-			local parts = {}
-			for i, v in ipairs(value) do
-				table.insert(parts, tostring(v))
-			end
-			return table.concat(parts, ", ")
-		end
+		end,
 
+		number = tostring,
+
+		boolean = function(val)
+			return val and "true" or "false"
+		end,
+
+		UDim = function(val)
+			return `UDim.new({val.Scale}, {val.Offset})`
+		end,
+
+		UDim2 = function(val)
+			return `UDim2.new({val.X.Scale}, {val.X.Offset}, {val.Y.Scale}, {val.Y.Offset})`
+		end,
+
+		Vector2 = function(val)
+			return `Vector2.new({val.X}, {val.Y})`
+		end,
+
+		Vector3 = function(val)
+			if is_color_property then
+				return `Color3.new({val.X}, {val.Y}, {val.Z})`
+			else
+				return `Vector3.new({val.X}, {val.Y}, {val.Z})`
+			end
+		end,
+
+		Color3 = function(val)
+			return `Color3.new({val.R}, {val.G}, {val.B})`
+		end,
+
+		BrickColor = function(val)
+			return `BrickColor.new("{val.Name}")`
+		end,
+
+		EnumItem = function(val)
+			return `Enum.{tostring(val)}`
+		end,
+
+		table = function(val)
+			-- Handle specific numeric table formats
+			if #val == 2 and typeof(val[1]) == "number" and typeof(val[2]) == "number" then
+				return `UDim.new({val[1]}, {val[2]})`
+
+			elseif #val == 4 and typeof(val[1]) == "number" and typeof(val[2]) == "number"
+				and typeof(val[3]) == "number" and typeof(val[4]) == "number" then
+				return `UDim2.new({val[1]}, {val[2]}, {val[3]}, {val[4]})`
+
+			elseif #val == 3 and typeof(val[1]) == "number" and typeof(val[2]) == "number"
+				and typeof(val[3]) == "number" then
+				if is_color_property then
+					return `Color3.new({val[1]}, {val[2]}, {val[3]})`
+				else
+					return `Vector3.new({val[1]}, {val[2]}, {val[3]})`
+				end
+			else
+				-- Generic table: concatenate elements
+				local parts = {}
+				for _, v in ipairs(val) do
+					table.insert(parts, tostring(v))
+				end
+				return table.concat(parts, ", ")
+			end
+		end
+	}
+
+	-- Get handler for the type
+	local handler = type_handlers[value_type]
+
+	if handler then
+		return handler(value)
 	else
-		-- Fallback for other types
-		local strValue = tostring(value)
-		-- Check if it looks like a number
-		if strValue:match("^[%d%.]+$") then
-			return strValue
+		-- Fallback for unhandled types
+		local string_value = tostring(value)
+		if string_value:match("^[%d%.]+$") then
+			return string_value
 		else
-			return `"{strValue}"`
+			return `"{string_value}"`
 		end
 	end
 end
@@ -219,7 +233,7 @@ local function GUI_Instance_To_Quark_Code(gui_instance: GuiBase, recursion: numb
 		end
 
 		-- Format the value for Quark
-		local formatted_value = formatValueForQuark(instance_property_value, key)
+		local formatted_value = Format_Value_For_Quark_Code(instance_property_value, key)
 
 		for i = 1, recursion do
 			quark_code = quark_code .. "\t"
