@@ -23,6 +23,20 @@ type GUI_Class_Properties_Map = {
 -- CONSTANTS
 --
 local DEPRECATED_PROPERTY_NAME: DEPRECATED_PROPERTY = "DEPRECATED"
+local BULLSHIT_PROPERTIES_NOBODY_WANTS = {
+    Active             = true,  -- Unreasonable
+    AbsoluteCanvasSize = true,  -- Absolute bullshit
+    AbsoluteWindowSize = true,  -- Absolute bullshit
+    AbsoluteSize       = true,  -- Absolute bullshit
+    AbsolutePosition   = true,  -- Absolute bullshit
+    BorderColor        = true,  -- BorderColor3 exists bruh
+    BackgroundColor    = true,  -- BackgroundColor3Exists
+    TextBounds         = true,  -- Read-only
+    TextColor          = true,  -- TextColor3Exists
+    TextFits           = true,  -- Read-only
+    Font               = true,  -- Read-only
+    ContentText        = true,  -- Read-only
+}
 --
 -- LOCAL VARIABLES
 --
@@ -306,7 +320,13 @@ local function Collect_Sorted_Properties(gui_instance: GuiBase, class: string): 
 		--
 		if (default_val == DEPRECATED_PROPERTY_NAME) then
 			continue
-		end
+        end
+        --
+        -- Bullshit property? => Skip.
+        --
+        if (BULLSHIT_PROPERTIES_NOBODY_WANTS[key] == true) then
+            continue
+        end
 
 		local success, instance_val = pcall(function()
 			return (gui_instance :: any)[key]
