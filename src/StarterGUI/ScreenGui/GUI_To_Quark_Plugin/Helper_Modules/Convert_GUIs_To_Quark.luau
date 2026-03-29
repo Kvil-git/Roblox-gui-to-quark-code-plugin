@@ -230,23 +230,33 @@ local function Format_Value_For_Quark_Code(value: any, propertyName: string): st
 			return `Enum.{tostring(val)}`
 		end,
 
-		table = function(val)
+        table = function(val)
+            local values_count = #val
+            local is_number_by_idx = {}
+            for i=1, 4 do
+                is_number_by_idx[i] = (typeof(val[1]) == "number");
+            end
+            local first_n_indices_are_numbers = {}
+            for i=1, 4 do
+                first_n_indices_are_numbers[i] = true
+                for j=1, i do
+                    first_n_indices_are_numbers[i] = (first_n_indices_are_numbers[i] and is_number_by_idx[j])
+                end
+            end
 			-- Handle specific numeric table formats
-			if #val == 2 and typeof(val[1]) == "number" and typeof(val[2]) == "number" then
+            if ((values_count == 2) and (first_n_indices_are_numbers[2] == true)) then
                 val[1] = Rnd(val[1])
                 val[2] = Rnd(val[2])
 				return `UDim.new({val[1]}, {val[2]})`
 
-			elseif #val == 4 and typeof(val[1]) == "number" and typeof(val[2]) == "number"
-				and typeof(val[3]) == "number" and typeof(val[4]) == "number" then
+            elseif ((values_count == 4) and (first_n_indices_are_numbers[4] == true)) then
                 val[1] = Rnd(val[1])
                 val[2] = Rnd(val[2])
                 val[3] = Rnd(val[3])
                 val[4] = Rnd(val[4])
 				return `UDim2.new({val[1]}, {val[2]}, {val[3]}, {val[4]})`
 
-			elseif #val == 3 and typeof(val[1]) == "number" and typeof(val[2]) == "number"
-				and typeof(val[3]) == "number" then
+            elseif ((values_count == 3) and (first_n_indices_are_numbers[3] == true)) then
                 val[1] = Rnd(val[1])
                 val[2] = Rnd(val[2])
                 val[3] = Rnd(val[3])
