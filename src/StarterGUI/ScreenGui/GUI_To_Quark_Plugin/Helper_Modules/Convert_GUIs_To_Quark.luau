@@ -374,8 +374,8 @@ local function GUI_Instance_To_Quark_Code(gui_instance: GuiBase, depth: number?)
 	depth = depth or 0
 
 	local class        = gui_instance.ClassName
-	local indent       = string.rep("\t", depth)
-	local inner_indent = string.rep("\t", depth + 1)
+	local indent       = string.rep("    ", depth)
+	local inner_indent = string.rep("    ", depth + 1)
 
 	local class_dump = Default_GUI_Class_Properties[class]
 	if (class_dump == nil) then
