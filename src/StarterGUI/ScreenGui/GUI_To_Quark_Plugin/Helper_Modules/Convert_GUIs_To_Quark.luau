@@ -19,6 +19,26 @@ type GUI_Class_Properties_Map = {
 		Child_Classes: {GUI_Class_Name}
 	}
 }
+
+type Interesting_GUI_Instance = GuiBase2d
+| UIAspectRatioConstraint
+| UITextSizeConstraint
+| UIGridStyleLayout
+| UIFlexItem
+| UIGradient
+| UIStroke
+| UIPadding
+| UICorner
+
+type Interesting_GUI_Instance_Name = "GuiBase2d"
+| "UIAspectRatioConstraint"
+| "UITextSizeConstraint"
+| "UIGridStyleLayout"
+| "UIFlexItem"
+| "UIGradient"
+| "UIStroke"
+| "UIPadding"
+| "UICorner"
 --
 -- CONSTANTS
 --
@@ -315,7 +335,9 @@ end
 -- Collects all non-default, non-deprecated properties of a gui_instance
 -- into a sorted array of {key, value} pairs.
 --
-local function Collect_Sorted_Properties(gui_instance: GuiBase, class: string): {{key: string, value: any}}
+local function Collect_Sorted_Properties(gui_instance: Interesting_GUI_Instance,
+                                         class:        string
+                                        ): {{key: string, value: any}}
 	local class_dump = Default_GUI_Class_Properties[class]
 	local props = {}
 
@@ -370,7 +392,9 @@ end
 -- The child nodes are indented by depth + 2 (one extra level for inner content
 -- of the current node, one more for being inside the Children block).
 --
-local function GUI_Instance_To_Quark_Code(gui_instance: GuiBase, depth: number?): string
+local function GUI_Instance_To_Quark_Code(gui_instance: Interesting_GUI_Instance,
+                                          depth:        number?
+                                         ): string
 	depth = depth or 0
 
 	local class        = gui_instance.ClassName
@@ -416,12 +440,14 @@ local function GUI_Instance_To_Quark_Code(gui_instance: GuiBase, depth: number?)
 	end
 
 	--
-	-- Collect GuiBase children and emit them inside a Children block.
+	-- Collect children that are GUI instances or UI components we care about.
+	-- Check against Default_GUI_Class_Properties to include UIGridStyleLayout,
+	-- UICorner, UIPadding, etc. which don't inherit from GuiBase.
 	--
-	local gui_children: {GuiBase} = {}
+	local gui_children: {Interesting_GUI_Instance} = {}
 	for _, child in gui_instance:GetChildren() do
-		if child:IsA("GuiBase") then
-			table.insert(gui_children, child :: GuiBase)
+		if (Default_GUI_Class_Properties[child.ClassName] ~= nil) then
+			table.insert(gui_children, child :: Interesting_GUI_Instance)
 		end
 	end
 
@@ -448,6 +474,14 @@ end
 -- MODULE OPERATION
 --
 Prepare_GUI_Class_Properties_Table("GuiBase2d")
+Prepare_GUI_Class_Properties_Table("UIAspectRatioConstraint")
+Prepare_GUI_Class_Properties_Table("UITextSizeConstraint")
+Prepare_GUI_Class_Properties_Table("UIGridStyleLayout")
+Prepare_GUI_Class_Properties_Table("UIFlexItem")
+Prepare_GUI_Class_Properties_Table("UIGradient")
+Prepare_GUI_Class_Properties_Table("UIStroke")
+Prepare_GUI_Class_Properties_Table("UIPadding")
+Prepare_GUI_Class_Properties_Table("UICorner")
 --
 -- RETURN VALUE
 --
