@@ -100,6 +100,40 @@ local function Prepare_GUI_Class_Properties_Table(gui_class_name: string)
 	end
 end
 
+local function Parse_Font_String(input: string): string?
+    -- Extract the content between the braces
+    local inside = input:match("Font%s*{(.*)}")
+    if not inside then
+        return nil
+    end
+
+    -- Parse key-value pairs separated by commas
+    local pairs = {}
+    for pair in inside:gmatch("[^,]+") do
+        local key, value = pair:match("(%w+)%s*=%s*(.*)")
+        if key and value then
+            key = key:gsub("%s", "")                     -- remove whitespace from key
+            value = value:gsub("^%s*(.-)%s*$", "%1")     -- trim value
+            pairs[key] = value
+        end
+    end
+
+    -- Retrieve the required fields
+    local family = pairs["Family"]
+    local weight = pairs["Weight"]
+    local style  = pairs["Style"]
+
+    if not (family and weight and style) then
+        return nil
+    end
+
+    -- Format the output string
+    return string.format(
+        'Font.new("%s", Enum.FontWeight.%s, Enum.FontStyle.%s)',
+        family, weight, style
+    )
+end
+
 local function Format_Value_For_Quark_Code(value: any, propertyName: string): string
 	local value_type = typeof(value)
 	local is_color_property = propertyName:lower():find("color") ~= nil
@@ -107,7 +141,12 @@ local function Format_Value_For_Quark_Code(value: any, propertyName: string): st
 	-- Switch-case analog in lua is just a table of functions.
 	--
 	local type_handlers = {
-		string = function(val: string)
+        string = function(val: string)
+            -- Check if string is a font face
+            local font_str = Parse_Font_String(val)
+            if (font_str ~= nil) then
+                return font_str
+            end
 			-- Check if string contains only numbers (with optional decimal)
 			if val:match("^[%d%.]+$") then
 				return val
