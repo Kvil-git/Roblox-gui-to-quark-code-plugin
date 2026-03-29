@@ -161,6 +161,13 @@ local function Parse_Font_String(input: string): string?
     )
 end
 
+--
+-- Round a number to three decimal places.
+--
+local function Rnd(value: number)
+    return (math.round(value * 1000) / 1000)
+end
+
 local function Format_Value_For_Quark_Code(value: any, propertyName: string): string
 	local value_type = typeof(value)
 	local is_color_property = propertyName:lower():find("color") ~= nil
@@ -175,41 +182,44 @@ local function Format_Value_For_Quark_Code(value: any, propertyName: string): st
                 return font_str
             end
 			-- Check if string contains only numbers (with optional decimal)
-			if val:match("^[%d%.]+$") then
-				return val
+            if val:match("^[%d%.]+$") then
+                local num_val = tonumber(val) or 0
+                return `{Rnd(num_val)}`
 			else
 				return `"{val}"`
 			end
 		end,
 
-		number = tostring,
+		number = function(val: number)
+			return `{Rnd(val)}`
+		end,
 
 		boolean = function(val)
 			return val and "true" or "false"
 		end,
 
 		UDim = function(val)
-			return `UDim.new({val.Scale}, {val.Offset})`
+            return `UDim.new({Rnd(val.Scale)}, {Rnd(val.Offset)})`
 		end,
 
 		UDim2 = function(val)
-			return `UDim2.new({val.X.Scale}, {val.X.Offset}, {val.Y.Scale}, {val.Y.Offset})`
+            return `UDim2.new({Rnd(val.X.Scale)}, {Rnd(val.X.Offset)}, {Rnd(val.Y.Scale)}, {Rnd(val.Y.Offset)})`
 		end,
 
 		Vector2 = function(val)
-			return `Vector2.new({val.X}, {val.Y})`
+			return `Vector2.new({Rnd(val.X)}, {Rnd(val.Y)})`
 		end,
 
 		Vector3 = function(val)
 			if is_color_property then
-				return `Color3.new({val.X}, {val.Y}, {val.Z})`
+                return `Color3.new({Rnd(val.X)}, {Rnd(val.Y)}, {Rnd(val.Z)})`
 			else
-				return `Vector3.new({val.X}, {val.Y}, {val.Z})`
+                return `Vector3.new({Rnd(val.X)}, {Rnd(val.Y)}, {Rnd(val.Z)})`
 			end
 		end,
 
 		Color3 = function(val)
-			return `Color3.new({val.R}, {val.G}, {val.B})`
+            return `Color3.new({Rnd(val.R)}, {Rnd(val.G)}, {Rnd(val.B)})`
 		end,
 
 		BrickColor = function(val)
@@ -223,14 +233,23 @@ local function Format_Value_For_Quark_Code(value: any, propertyName: string): st
 		table = function(val)
 			-- Handle specific numeric table formats
 			if #val == 2 and typeof(val[1]) == "number" and typeof(val[2]) == "number" then
+                val[1] = Rnd(val[1])
+                val[2] = Rnd(val[2])
 				return `UDim.new({val[1]}, {val[2]})`
 
 			elseif #val == 4 and typeof(val[1]) == "number" and typeof(val[2]) == "number"
 				and typeof(val[3]) == "number" and typeof(val[4]) == "number" then
+                val[1] = Rnd(val[1])
+                val[2] = Rnd(val[2])
+                val[3] = Rnd(val[3])
+                val[4] = Rnd(val[4])
 				return `UDim2.new({val[1]}, {val[2]}, {val[3]}, {val[4]})`
 
 			elseif #val == 3 and typeof(val[1]) == "number" and typeof(val[2]) == "number"
 				and typeof(val[3]) == "number" then
+                val[1] = Rnd(val[1])
+                val[2] = Rnd(val[2])
+                val[3] = Rnd(val[3])
 				if is_color_property then
 					return `Color3.new({val[1]}, {val[2]}, {val[3]})`
 				else
