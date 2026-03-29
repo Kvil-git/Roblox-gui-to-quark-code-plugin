@@ -297,7 +297,12 @@ local function Format_Value_For_Quark_Code(value: any, propertyName: string): st
 		return handler(value)
 	else
 		-- Fallback for unhandled types
-		local string_value = tostring(value)
+        local string_value = tostring(value)
+        local font_str = Parse_Font_String(string_value)
+        if (font_str ~= nil) then
+            return font_str
+        end
+        
 		if string_value:match("^[%d%.]+$") then
 			return string_value
 		else
