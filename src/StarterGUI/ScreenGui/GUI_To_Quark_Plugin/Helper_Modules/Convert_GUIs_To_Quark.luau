@@ -260,8 +260,13 @@ local function Format_Value_For_Quark_Code(value: any, propertyName: string): st
 			return `BrickColor.new("{val.Name}")`
 		end,
 
-		EnumItem = function(val)
-			return `Enum.{tostring(val)}`
+        EnumItem = function(val)
+            local str_val = tostring(val)
+            if str_val:match("Enum.") then
+                return str_val
+            else
+                return `Enum.{str_val}`
+            end
 		end,
 
         table = function(val)
