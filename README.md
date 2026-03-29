@@ -13,7 +13,7 @@ https://argon.wiki/
 
 ## How to use
 - Step 1. Install the plugin.
-- Step 2. Select your desired instances in roblox studio's explorer. <br>
+- Step 2. Select your desired instances in roblox studio's explorer. (Note: Since version 2.0, just selecting the parent is enough) <br>
   <img width="268" height="129" alt="изображение" src="https://github.com/user-attachments/assets/f90aeb60-7a3a-4044-ae23-a08769357622" />
 
 - Step 3. Press the big thick button labeled "Convert GUI to Quark". <br>
