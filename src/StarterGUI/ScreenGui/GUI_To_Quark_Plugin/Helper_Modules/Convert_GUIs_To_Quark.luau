@@ -30,6 +30,33 @@ local Default_GUI_Class_Properties = {} :: GUI_Class_Properties_Map
 --
 -- LOCAL FUNCTIONS
 --
+local function Get_Top_Level_Instances(input_instances: {Instance})
+    --
+    -- Create a set of all instances for quick lookup.
+    --
+    local instance_lookup: {[Instance]: boolean} = {}
+    for _, instance in input_instances do
+        instance_lookup[instance] = true
+    end
+    --
+    -- Collect instances with no parent in the set.
+    --
+    local top_level_instances = {}
+    for _, instance in input_instances do
+        local parent = instance.Parent
+        --
+        -- Instances has a parent, and it's in the input instances set? => Continue.
+        --
+        if ((parent ~= nil) and (instance_lookup[parent] ~= nil)) then
+            continue
+        end
+        
+        table.insert(top_level_instances, instance)
+    end
+
+    return top_level_instances
+end
+
 local function Prepare_GUI_Class_Properties_Table(gui_class_name: string)
 	--
 	-- Class already exists in the table? => return
