@@ -45,12 +45,12 @@ local function Get_Top_Level_Instances(input_instances: {Instance})
     for _, instance in input_instances do
         local parent = instance.Parent
         --
-        -- Instances has a parent, and it's in the input instances set? => Continue.
+        -- Instance has a parent, and it's in the input instances set? => Continue.
         --
         if ((parent ~= nil) and (instance_lookup[parent] ~= nil)) then
             continue
         end
-        
+
         table.insert(top_level_instances, instance)
     end
 
@@ -74,7 +74,7 @@ local function Prepare_GUI_Class_Properties_Table(gui_class_name: string)
 	end
 	--
 	-- Valid class name?
-	--         => 
+	--         =>
 	-- Add all properties of this class
 	-- to Default_GUI_Class_Properties, and call this function
 	-- with all child class names to recursively construct
@@ -263,53 +263,132 @@ local function Format_Value_For_Quark_Code(value: any, propertyName: string): st
 	end
 end
 
-local function GUI_Instance_To_Quark_Code(gui_instance: GuiBase, recursion: number?): string
-	local class = gui_instance.ClassName
-	recursion = recursion or 1
-
-	local quark_code = `local {gui_instance.Name} = New "{class}" \{`
-
+--
+-- Collects all non-default, non-deprecated properties of a gui_instance
+-- into a sorted array of {key, value} pairs.
+--
+local function Collect_Sorted_Properties(gui_instance: GuiBase, class: string): {{key: string, value: any}}
 	local class_dump = Default_GUI_Class_Properties[class]
-	if (class_dump == nil) then
-		warn(`Class dump for {class} wan't found. Report this to the plugin developers.`)
-		return ""
-	end
+	local props = {}
 
-	quark_code = `{quark_code}\n-- Properties start\n`
+	for key, default_val in class_dump.Properties do
+		--
+		-- Deprecated property? => Skip.
+		--
+		if (default_val == DEPRECATED_PROPERTY_NAME) then
+			continue
+		end
 
-	for key, property in Default_GUI_Class_Properties[class].Properties do
-		local success, instance_property_value = pcall(function()
-			return gui_instance[key]
+		local success, instance_val = pcall(function()
+			return (gui_instance :: any)[key]
 		end)
 		if (not success) then
 			continue
 		end
 		--
-		-- Gui instance's property has the default value? => Skip this property.
+		-- Property has the default value? => Skip.
 		--
-		if (instance_property_value == property) then
-			continue
-		end
-		--
-		-- Developer is using a deprecated property? => We don't care, skip this property.
-		--
-		if (property == DEPRECATED_PROPERTY_NAME) then
-			print(`Property {key} of class {class} in instance {gui_instance.Name} is deprecated. Skipping it.`)
+		if (instance_val == default_val) then
 			continue
 		end
 
-		-- Format the value for Quark
-		local formatted_value = Format_Value_For_Quark_Code(instance_property_value, key)
-
-		for i = 1, recursion do
-			quark_code = quark_code .. "\t"
-		end
-		quark_code = `{quark_code} {key} = {formatted_value},\n`
+		table.insert(props, {key = key, value = instance_val})
 	end
-	quark_code = `{quark_code}\n-- Properties end`
-	quark_code = `{quark_code}\n}`
+	--
+	-- Sort alphabetically so the output is deterministic and readable.
+	--
+	table.sort(props, function(a, b)
+		return a.key < b.key
+	end)
 
-	return quark_code
+	return props
+end
+
+--
+-- Recursively converts a GuiBase instance and all its GuiBase descendants
+-- into Quark code.
+--
+-- depth controls the indentation level:
+--   depth = 0  =>  top-level, emits  `local Name = New "Class" { ... }`
+--   depth > 0  =>  child node, emits  `<indent>New "Class" { Name = "...", ... }`
+--
+-- Children of the instance are placed inside a `Children = { ... }` block.
+-- The child nodes are indented by depth + 2 (one extra level for inner content
+-- of the current node, one more for being inside the Children block).
+--
+local function GUI_Instance_To_Quark_Code(gui_instance: GuiBase, depth: number?): string
+	depth = depth or 0
+
+	local class        = gui_instance.ClassName
+	local indent       = string.rep("\t", depth)
+	local inner_indent = string.rep("\t", depth + 1)
+
+	local class_dump = Default_GUI_Class_Properties[class]
+	if (class_dump == nil) then
+		warn(`Class dump for {class} wasn't found. Report this to the plugin developers.`)
+		return ""
+	end
+
+	local props = Collect_Sorted_Properties(gui_instance, class)
+
+	--
+	-- Build the opening line.
+	-- Top-level nodes get a variable declaration; child nodes get an inline New.
+	--
+	local code = ""
+
+	if (depth == 0) then
+		code = `local {gui_instance.Name} = New "{class}" \{\n`
+	else
+		--
+		-- Child node: start inline, always include Name first so the
+		-- reader can immediately identify what this node is.
+		--
+		code = `{indent}New "{class}" \{\n`
+		code = code .. `{inner_indent}Name = "{gui_instance.Name}",\n`
+	end
+
+	--
+	-- Emit sorted properties.
+	-- Skip Name for child nodes since we already wrote it above.
+	--
+	for _, prop in props do
+		if ((depth > 0) and (prop.key == "Name")) then
+			continue
+		end
+
+		local formatted = Format_Value_For_Quark_Code(prop.value, prop.key)
+		code = code .. `{inner_indent}{prop.key} = {formatted},\n`
+	end
+
+	--
+	-- Collect GuiBase children and emit them inside a Children block.
+	--
+	local gui_children: {GuiBase} = {}
+	for _, child in gui_instance:GetChildren() do
+		if child:IsA("GuiBase") then
+			table.insert(gui_children, child :: GuiBase)
+		end
+	end
+
+	if (#gui_children > 0) then
+		code = code .. `{inner_indent}Children = \{\n`
+
+		for _, child in gui_children do
+			--
+			-- depth + 2: +1 for inner content of this node, +1 for being
+			-- inside the Children = { } block.
+			--
+			local child_code = GUI_Instance_To_Quark_Code(child, depth + 2)
+			code = code .. child_code .. ",\n"
+		end
+
+		code = code .. `{inner_indent}\},\n`
+	end
+
+	code = code .. `{indent}\}`
+
+	return code
 end
 --
 -- MODULE OPERATION
@@ -318,4 +397,10 @@ Prepare_GUI_Class_Properties_Table("GuiBase2d")
 --
 -- RETURN VALUE
 --
-return GUI_Instance_To_Quark_Code
+-- Returning a table so Plugin_GUI can also access Get_Top_Level_Instances
+-- without duplicating it.
+--
+return {
+	Convert          = GUI_Instance_To_Quark_Code,
+	Get_Top_Level    = Get_Top_Level_Instances,
+}
